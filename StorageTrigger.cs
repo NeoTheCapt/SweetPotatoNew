@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
 
     [ComVisible(true)]
     internal class StorageTrigger : IMarshal, IStorage {

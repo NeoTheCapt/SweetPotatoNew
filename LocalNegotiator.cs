@@ -1,7 +1,7 @@
 ﻿using System;
-using static SweetPotato.SSPIHelper;
+using static SweetPotatoNew.SSPIHelper;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
 
     internal class LocalNegotiator {
 

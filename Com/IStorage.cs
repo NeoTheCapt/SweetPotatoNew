@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
 
     [InterfaceType(1)]
     [ComConversionLoss]

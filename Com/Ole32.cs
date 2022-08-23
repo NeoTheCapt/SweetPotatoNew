@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
     public static class Ole32 {
 
         [Flags]

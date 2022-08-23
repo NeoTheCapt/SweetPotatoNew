@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
     [ComVisible(false)]
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("0000000A-0000-0000-C000-000000000046")]
     public interface ILockBytes {

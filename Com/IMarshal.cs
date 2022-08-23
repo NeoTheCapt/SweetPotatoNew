@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
 
     [Guid("00000003-0000-0000-C000-000000000046")]
     [InterfaceType(1)]

@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
     internal class EfsRpc {
 
         string pipeName = Guid.NewGuid().ToString();

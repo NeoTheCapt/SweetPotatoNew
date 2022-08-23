@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
     internal class PrintSpoofer {
 
         static int PRINTER_CHANGE_ADD_JOB = 0x00000100;

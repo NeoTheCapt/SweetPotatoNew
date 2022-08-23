@@ -3,8 +3,10 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace SweetPotato {
-    internal class ImpersonationToken {
+namespace SweetPotatoNew
+{
+    internal class ImpersonationToken
+    {
         // Constants that are going to be used during our procedure.
         public static uint SE_PRIVILEGE_ENABLED = 0x00000002;
         public static uint STANDARD_RIGHTS_REQUIRED = 0x000F0000;
@@ -21,31 +23,41 @@ namespace SweetPotato {
         public static uint TOKEN_READ = STANDARD_RIGHTS_READ | TOKEN_QUERY;
         public static uint TOKEN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED | TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_QUERY_SOURCE | TOKEN_ADJUST_PRIVILEGES | TOKEN_ADJUST_GROUPS | TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_SESSIONID;
         public static uint MAXIMUM_ALLOWED = 0x02000000;
-
+        public static IntPtr out_read;
+        public static IntPtr out_write;
+        public static IntPtr err_read;
+        public static IntPtr err_write;
+        public static int HANDLE_FLAG_INHERIT = 0x00000001;
+        public static int STARTF_USESTDHANDLES = 0x00000100;
+        public static int BUFSIZE = 4096;
         public static uint DETACHED_PROCESS = 0x00000008;
         public static uint CREATE_NEW_CONSOLE = 0x00000010;
 
 
-        public enum SECURITY_IMPERSONATION_LEVEL {
+        public enum SECURITY_IMPERSONATION_LEVEL
+        {
             SecurityAnonymous,
             SecurityIdentification,
             SecurityImpersonation,
             SecurityDelegation
         }
 
-        public enum TOKEN_TYPE {
+        public enum TOKEN_TYPE
+        {
             TokenPrimary = 1,
             TokenImpersonation
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct LUID {
+        internal struct LUID
+        {
             internal Int32 LowPart;
             internal UInt32 HighPart;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct TOKEN_PRIVILEGES {
+        internal struct TOKEN_PRIVILEGES
+        {
             internal Int32 PrivilegeCount;
             internal LUID Luid;
             internal UInt32 Attributes;
@@ -53,7 +65,8 @@ namespace SweetPotato {
 
         // This also works with CharSet.Ansi as long as the calling function uses the same character set.
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct STARTUPINFO {
+        public struct STARTUPINFO
+        {
             public Int32 cb;
             public string lpReserved;
             public string lpDesktop;
@@ -75,19 +88,22 @@ namespace SweetPotato {
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct PROCESS_INFORMATION {
+        public struct PROCESS_INFORMATION
+        {
             public IntPtr hProcess;
             public IntPtr hThread;
             public int dwProcessId;
             public int dwThreadId;
         }
 
-        public enum LogonFlags {
+        public enum LogonFlags
+        {
             WithProfile = 1,
             NetCredentialsOnly
         }
 
-        public enum CreationFlags {
+        public enum CreationFlags
+        {
             DefaultErrorMode = 0x04000000,
             DetachedProcess = 0x00000008,
             NewConsole = 0x00000010,
@@ -98,7 +114,8 @@ namespace SweetPotato {
             ExtendedStartupInfoPresent = 0x00080000
         }
 
-        public enum SecurityEntity {
+        public enum SecurityEntity
+        {
             SE_CREATE_TOKEN_NAME,
             SE_ASSIGNPRIMARYTOKEN_NAME,
             SE_LOCK_MEMORY_NAME,
@@ -136,6 +153,21 @@ namespace SweetPotato {
             SE_TRUSTED_CREDMAN_ACCESS_NAME
         }
 
+        public struct SECURITY_ATTRIBUTES
+        {
+            public Int32 nLength;
+            public IntPtr lpSecurityDescriptor;
+            public int bInheritHandle;
+        }
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool CreatePipe(ref IntPtr hReadPipe, ref IntPtr hWritePipe, ref SECURITY_ATTRIBUTES lpPipeAttributes, Int32 nSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool ReadFile(IntPtr hFile, byte[] lpBuffer, int nNumberOfBytesToRead, ref int lpNumberOfBytesRead, IntPtr lpOverlapped/*IntPtr.Zero*/);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetHandleInformation(IntPtr hObject, int dwMask, int dwFlags);
+
         [DllImport("advapi32", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool CreateProcessWithTokenW(IntPtr hToken, LogonFlags dwLogonFlags, string lpApplicationName, string lpCommandLine,
             CreationFlags dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
@@ -155,7 +187,7 @@ namespace SweetPotato {
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool AdjustTokenPrivileges(IntPtr tokenhandle,
                                  [MarshalAs(UnmanagedType.Bool)] bool disableAllPrivileges,
-                                 [MarshalAs(UnmanagedType.Struct)]ref TOKEN_PRIVILEGES newstate,
+                                 [MarshalAs(UnmanagedType.Struct)] ref TOKEN_PRIVILEGES newstate,
                                  uint bufferlength, IntPtr previousState, IntPtr returnlength);
         // OpenProcessToken
         [DllImport("advapi32.dll", SetLastError = true)]
@@ -185,8 +217,10 @@ namespace SweetPotato {
         [DllImport("userenv.dll", SetLastError = true)]
         public static extern bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, bool bInherit);
 
-        private static string GetSecurityEntityValue(SecurityEntity securityEntity) {
-            switch (securityEntity) {
+        private static string GetSecurityEntityValue(SecurityEntity securityEntity)
+        {
+            switch (securityEntity)
+            {
                 case SecurityEntity.SE_ASSIGNPRIMARYTOKEN_NAME:
                     return "SeAssignPrimaryTokenPrivilege";
                 case SecurityEntity.SE_AUDIT_NAME:
@@ -260,44 +294,59 @@ namespace SweetPotato {
             }
         }
 
-        public static bool EnablePrivilege(SecurityEntity securityEntity) {
+        public static bool EnablePrivilege(SecurityEntity securityEntity)
+        {
             const int ERROR_NOT_ALL_ASSIGNED = 1300;
 
             if (!Enum.IsDefined(typeof(SecurityEntity), securityEntity))
                 throw new InvalidEnumArgumentException("securityEntity", (int)securityEntity, typeof(SecurityEntity));
 
             var securityEntityValue = GetSecurityEntityValue(securityEntity);
-            try {
+            try
+            {
                 var locallyUniqueIdentifier = new LUID();
 
-                if (LookupPrivilegeValue(null, securityEntityValue, ref locallyUniqueIdentifier)) {
+                if (LookupPrivilegeValue(null, securityEntityValue, ref locallyUniqueIdentifier))
+                {
                     var TOKEN_PRIVILEGES = new TOKEN_PRIVILEGES();
                     TOKEN_PRIVILEGES.PrivilegeCount = 1;
                     TOKEN_PRIVILEGES.Attributes = SE_PRIVILEGE_ENABLED;
                     TOKEN_PRIVILEGES.Luid = locallyUniqueIdentifier;
 
                     var tokenHandle = IntPtr.Zero;
-                    try {
+                    try
+                    {
                         var currentProcess = GetCurrentProcess();
-                        if (OpenProcessToken(currentProcess, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out tokenHandle)) {
+                        if (OpenProcessToken(currentProcess, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out tokenHandle))
+                        {
                             if (AdjustTokenPrivileges(tokenHandle, false,
                                                 ref TOKEN_PRIVILEGES,
-               1024, IntPtr.Zero, IntPtr.Zero)) {
+               1024, IntPtr.Zero, IntPtr.Zero))
+                            {
                                 var lastError = Marshal.GetLastWin32Error();
-                                if (lastError == ERROR_NOT_ALL_ASSIGNED) {
+                                if (lastError == ERROR_NOT_ALL_ASSIGNED)
+                                {
                                     //Not likley to have the privilege
                                     return false;
-                                } else if (lastError != 0) {
+                                }
+                                else if (lastError != 0)
+                                {
                                     var win32Exception = new Win32Exception();
                                     throw new InvalidOperationException("AdjustTokenPrivileges failed.", win32Exception);
-                                } else {
+                                }
+                                else
+                                {
                                     return true;
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 var win32Exception = new Win32Exception();
                                 throw new InvalidOperationException("AdjustTokenPrivileges failed.", win32Exception);
                             }
-                        } else {
+                        }
+                        else
+                        {
                             var win32Exception = new Win32Exception();
 
                             var exceptionMessage = string.Format(CultureInfo.InvariantCulture,
@@ -306,11 +355,15 @@ namespace SweetPotato {
 
                             throw new InvalidOperationException(exceptionMessage, win32Exception);
                         }
-                    } finally {
+                    }
+                    finally
+                    {
                         if (tokenHandle != IntPtr.Zero)
                             CloseHandle(tokenHandle);
                     }
-                } else {
+                }
+                else
+                {
                     var win32Exception = new Win32Exception();
 
                     var exceptionMessage = string.Format(CultureInfo.InvariantCulture,
@@ -319,7 +372,9 @@ namespace SweetPotato {
 
                     throw new InvalidOperationException(exceptionMessage, win32Exception);
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 var exceptionMessage = string.Format(CultureInfo.InvariantCulture,
                                  "GrandPrivilege failed. SecurityEntity: {0}",
                                  securityEntityValue);

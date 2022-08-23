@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace SweetPotato {
+namespace SweetPotatoNew {
 
     public enum ExecutionMethod {
         Auto,
